@@ -1,7 +1,7 @@
 <!doctype html>
 <html lang="zh">
 <head>
-	<title>好玩好玩 V0.2</title>
+	<title class="versionInfo"></title>
 	<style>
 	.inputBox,h3,#import,#start,#text1{width:500px;text-align:center;margin:10px auto;display:block;font-size:14px;}
 	#import,#start{width:248px;float:left;}
@@ -11,7 +11,7 @@
 <script src="jquery.min.js"></script>
 <body>
 <div>
-<h3>QQ群聊天灌水数据统计网页版（JS+正则）<br>V0.2 作者：喂喂</h3>
+<h3>QQ群聊天灌水数据统计网页版（JS+正则）<br><span class="versionInfo"></span></h3>
     <input type="file" id="files" style="display:none" onchange="btnImport();"/>
     <input type="text" id="text1" placeholder="要输入这种日期格式噢：2017-02-21"/>
 	<div class="inputBox"><input type="button" id="import" value="导入数据源"/>
@@ -23,8 +23,9 @@
 
 <script> 
 $(function(){
+	versionInfo();
 	$("#start").hide();
-	$("#text1").val(getNowFormatDate());
+	$("#text1").val(getFormatDate());
 })
 $("#import").click(function(){//点击导入按钮，使files触发点击事件，然后完成读取文件的操作。
         $("#files").click();
@@ -50,17 +51,18 @@ function btnImport(){
 }
 
 function start(){
-	var dataTime = $("#text1").val().trim();
-	var imgCount = excImgCount(fileSource,dataTime);
-	excResult(fileSource,dataTime,imgCount);
+	var dateTime = $("#text1").val().trim();
+	fileSource = fileSource.replace(/(\n)/g, "");
+	var nonTxtCount = excNonTxtCount(fileSource,dateTime);
+	excResult(fileSource,dateTime,nonTxtCount);
 	
 }
 //主要入口函数，开始进行数据计算分析
-function excResult(result,dataTime,imgCount){
+function excResult(result,dateTime,nonTxtCount){
 	//var regExp = /^@(.+)[ ]$/gim;
 	///^([a-zA-Z0-9_\.\-])+\@(([a-zA-Z0-9\-])+\.)+([a-zA-Z0-9]{2,4})+$/;
 	
-	var regExp =new RegExp("^"+dataTime+" (\\d{1,2}:\\d{2}:\\d{2}) (.+)(\\([^10000]\\d{3,12}\\)|<([a-zA-Z0-9_\\.\\-])+\\@(([a-zA-Z0-9\\-])+\\.)+([a-zA-Z0-9]{2,4})>)$","gim");
+	var regExp =new RegExp("^"+dateTime+" (\\d{1,2}:\\d{2}:\\d{2}) (.+)(\\([^10000]\\d{3,12}\\)|<([a-zA-Z0-9_\\.\\-])+\\@(([a-zA-Z0-9\\-])+\\.)+([a-zA-Z0-9]{2,4})>)$","gim");
 	//var matchResult = result.match(regExp);
 	
 	var dataArr = [];
@@ -78,11 +80,14 @@ function excResult(result,dataTime,imgCount){
 	if(!validationData(tempArray,dataArr.length)){
 		alert("正则匹配的数据总计与分类统计的总数有误！");
 	}
-	var alertCountTallMessage= "<br>聊天日期："+dataTime+"<br><br>你们一起在群里有<b>"+dataArr.length+"</b>次往来技(guan)术(shui)交(che)流(dan)<br>";
-	alertCountTallMessage += (imgCount > 0) ? "其中发了"+imgCount+"张图<br>": "你们居然聊天都没发图，不可思议，不可思议，不可思议<br>";
+	var alertCountTallMessage= "<br>聊天日期："+dateTime+"<br><br>你们一起在群里有<b>"+dataArr.length+"</b>次往来技(guan)术(shui)交(che)流(dan)<br>";
+	if($.isArray(nonTxtCount)){
+		alertCountTallMessage += (nonTxtCount[0] > 0) ? "其中发了"+nonTxtCount[0]+"张图片<br>": "你们居然聊天都没发图，不可思议，不可思议，不可思议<br>";
+		alertCountTallMessage += (nonTxtCount[1] > 0) ? "其中发了"+nonTxtCount[1]+"次表情<br>": "你们居然聊天都没表情，不可思议，不可思议，不可思议<br>";
+	}
 
-	var alertFirstTellMsg = "<br>一血是他 ---> "+dataArr[0]+" " + dataTime+" "+firstRecord;
-	var alertLastTallMessagePeople="收官是他 ---> "+RegExp.$2+" " + dataTime + " "+RegExp.$1;
+	var alertFirstTellMsg = "<br>一血是他 ---> "+dataArr[0]+" " + dateTime+" "+firstRecord;
+	var alertLastTallMessagePeople="收官是他 ---> "+RegExp.$2+" " + dateTime + " "+RegExp.$1;
 
     //分类筛选统计
 
@@ -90,19 +95,24 @@ function excResult(result,dataTime,imgCount){
 	var rankIndex1 = tempArray.length-1;
 	var rankIndex2 = tempArray.length-2;
 	var rankIndex3 = tempArray.length-3;
-	rank1 = "<br><br><b>下面是本届("+dataTime+")灌水大会金银铜牌</b><br><br>金嘴巴："+tempArray[rankIndex1][0]+"，总共发了"+tempArray[rankIndex1][1]+"条消息。";
+rank1 = "<br><br><b>下面是本届("+dateTime+")灌水大会金银铜牌</b><br><br>金嘴巴："+tempArray[rankIndex1][0]+"，总共发了"+tempArray[rankIndex1][1]+"条消息。";
 	rank2 = "<br> 银嘴巴："+tempArray[rankIndex2][0]+"，总共发了"+tempArray[rankIndex2][1]+"条消息。";
 	rank3 = "<br> 铜嘴巴："+tempArray[rankIndex3][0]+"，总共发了"+tempArray[rankIndex3][1]+"条消息。";
 
 	$("#showMsg").html(alertCountTallMessage+"<br>"+alertFirstTellMsg+"<br>"+alertLastTallMessagePeople+rank1+rank2+rank3);
 }
-//业务函数，对留言所发图片进行统计
-function excImgCount(result,dataTime)
+//业务函数，对留言所发非文字(表情、图片)进行统计
+function excNonTxtCount(result,dateTime)
 {
-	var regExp =new RegExp("^"+dataTime+" (\\d{1,2}:\\d{2}:\\d{2}) (.+)\\[图片\\]$","gim");
-
+	var regExp =new RegExp(dateTime+"([\\s\\S]*?)"+getFormatDate(1,dateTime),"gm");
 	var matchResult = result.match(regExp);
-	var count = !matchResult ? 0 : matchResult.length;
+	if(!matchResult) return 0;
+	var imgCount = matchResult[0].match(/\[图片\]/g);
+	var emojiCount = matchResult[0].match(/\[表情\]/g);
+	
+	var count = [];
+	count[0] = !imgCount ? 0 : imgCount.length;
+	count[1] = !emojiCount ? 0 : emojiCount.length;
 	return count;
 }
 
@@ -151,9 +161,9 @@ function validationData(arr,countNum)
 }
 
 //日期更新
-function getNowFormatDate() {
+function getFormatDate() {
 	var n = arguments[0] ? arguments[0] : -1;
-	var newdate = new Date();
+	var newdate = arguments[1] ? new Date(arguments[1]) : new Date();
 	var newtimems = newdate.getTime() + n * (24*60*60*1000);
     var date = new Date(newtimems);
     var seperator1 = "-";
@@ -166,12 +176,14 @@ function getNowFormatDate() {
     if (strDate >= 0 && strDate <= 9) {
         strDate = "0" + strDate;
     }
-//    var currentdate = date.getFullYear() + seperator1 + month + seperator1 + strDate
-//            + " " + date.getHours() + seperator2 + date.getMinutes()
-//            + seperator2 + date.getSeconds();
 
   var currentdate = date.getFullYear() + seperator1 + month + seperator1 + strDate;
     return currentdate;
+}
+
+function versionInfo()
+{
+	$(".versionInfo").text("V0.1.0223 作者：喂喂");
 }
 </script>
 </body>
